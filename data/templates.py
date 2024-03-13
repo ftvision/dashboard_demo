@@ -6,10 +6,22 @@ templates = {
 
 def render_tmp(tmp: str, data: dict):
     data = {
-        k: f"***{v}***" if v else "" for k, v in data.items()
+        k: v if v else "" for k, v in data.items()
     }  # stringize data and add markdown bold + italize
     rendered_text = tmp.format_map(data)
     return rendered_text
+
+
+def render_tmp_annotation(tmp: str, data: dict):
+    import string
+
+    annotated_tokens = []
+    for text_lit, field_name, _, _ in string.Formatter().parse(tmp):
+        if text_lit:
+            annotated_tokens.append((text_lit, None))
+        if field_name:
+            annotated_tokens.append((data.get(field_name, ""), field_name))
+    return annotated_tokens
 
 
 def render(template_name: str, data: dict = None):
@@ -25,4 +37,10 @@ def test_render():
     print(ret)
 
     ret = render("template2", data)
+    print(ret)
+
+
+def test_render_annotated_tokens():
+    data = {"name": "test", "param1": "a", "param2": "b", "param3": "c"}
+    ret = render_tmp_annotation(templates["template1"], data)
     print(ret)
