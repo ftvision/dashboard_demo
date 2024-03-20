@@ -1,1 +1,2 @@
 reflex
+urllib3==1.26.15  # my local openssl needs an old urllib3
