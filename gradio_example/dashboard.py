@@ -2,18 +2,20 @@ import gradio as gr
 
 from data import fields, model, templates
 
-
-def greet(name):
-    return "Hello " + name + "!"
-
-
 with gr.Blocks() as demo:
+    input_params = gr.State({})  # State needs to be within Block
+
     with gr.Row() as row:
-        # input parameters
-        with gr.Column(scale=1) as params:
-            text_boxes = {}  # try dynamically generate param textbox
+
+        with gr.Column(scale=1) as input_col:
+            text_boxes = {}  # collect all textbox for example later
             for field, type in fields.all_param_fields():
-                text_boxes[field] = gr.Textbox(label=field)
+                param = gr.Textbox(label=field)
+                param.change(
+                    fn=lambda value, state, field=field: state.update({field: value}),
+                    inputs=[param, input_params],
+                )
+                text_boxes[field] = param
 
         # using parameters and templates to render prompt
         with gr.Column(scale=3) as render:
@@ -35,36 +37,21 @@ with gr.Blocks() as demo:
                 with gr.Tab("Render Text"):
                     render_txt = gr.Textbox()
 
-            def render_annotated(component_data: dict):
-                # this is a bit weird syntax from Gradio.
-                # if inputs are passed in as a set() in the event, the callback would get a dictionary as input
-                data = {}
-                for param_box in text_boxes.values():
-                    data[param_box.label] = component_data[param_box]
-                text = templates.render_tmp_annotation(
-                    component_data[tmp_textbox], data
-                )
-                return text
-
-            def render(component_data: dict):
-                # this is a bit weird syntax from Gradio.
-                # if inputs are passed in as a set() in the event, the callback would get a dictionary as input
-                data = {}
-                for param_box in text_boxes.values():
-                    data[param_box.label] = component_data[param_box]
-                text = templates.render_tmp(component_data[tmp_textbox], data)
-                return text
-
             render_btn.click(
-                render_annotated,
-                # dynamically get multiple input
-                inputs=set(text_boxes.values()) | {tmp_textbox},
+                templates.render_tmp_annotation,
+                inputs=[
+                    tmp_textbox,
+                    input_params,
+                ],
                 outputs=annotated_render_txt,
             )
 
             render_btn.click(
-                render,
-                inputs=set(text_boxes.values()) | {tmp_textbox},
+                templates.render_tmp,
+                inputs=[
+                    tmp_textbox,
+                    input_params,
+                ],
                 outputs=render_txt,
             )
 
@@ -80,17 +67,13 @@ with gr.Blocks() as demo:
             api_name="model_call",
         )
 
-    example_inputs = [
-        text_boxes[f] for f in ["name", "param1", "param2", "param3", "param4"]
-    ] + [tmp_choice]
-
     gr.Examples(
         examples=[
             ["name", "param1", "param2", "param3", "param4", "template1"],
             ["n1", "p1", "p2", "p3", "p4", "template2"],
         ],
-        inputs=example_inputs,
+        inputs=list(text_boxes.values()) + [tmp_choice],
     )
 
-
-demo.launch()
+if __name__ == "__main__":
+    demo.launch()
