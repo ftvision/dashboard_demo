@@ -8,6 +8,10 @@ from data import fields, model, templates
 st.title("Prompt Iteration Playground")
 
 
+## NOTE, the following naive example of initialize st.session_state is wrong
+#
+# st.session_state.input_params = {}
+#
 # initialize and manage st.session_state is a bit tricky
 def init(session_state, key, init_value):
     if key not in session_state:
